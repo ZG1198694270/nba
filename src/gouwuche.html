@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>购物车</title>
+		<link rel="stylesheet" type="text/css" href="./bootstrap/css/bootstrap.css">
+		<style type="text/css">
+			img{
+				width: 50px;
+				height: 50px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="col-md-6 col-md-offset-3">
+			<table class="product-list table">
+				<thead>
+					<th>商品编号</th>
+					<th>商品图片</th>
+					<th>商品名称</th>
+					<th>价格</th>
+					<th>操作</th>
+				</thead>
+				<tbody>
+					<tr>
+						<td>2312313</td>
+						<td>
+							<img src="images/aswe%20(4).jpg"/>
+						</td>				
+						<td>衣服</td>
+						<td>122</td>
+						<td>
+							<span class="addCart btn-info btn">加入购物车</span>
+						</td>
+					</tr>
+					<tr>
+						<td>6765713</td>
+						<td><img src="images/aswe%20(3).jpg"/></td>
+						<td>衣服</td>
+						<td>211</td>
+						<td>
+							<span class="addCart btn-info btn">加入购物车</span>
+						</td>
+					</tr>
+					<tr>
+						<td>2879879</td>
+						<td>
+							<img src="images/aswe%20(5).jpg"/>
+						</td>
+						<td>衣服</td>
+						<td>112</td>
+						<td>
+							<span class="addCart btn-info btn">加入购物车</span>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<div id="car">
+		</div>
+		</div>
+		
+
+	</body>
+	<script>
+		//需求分析:
+		//把用户操作(加入购物车,减少商品数量,增加商品数量,清除某个商品)完成后的购物车信息存入本地存储(localStorage)中.
+		//下次打开浏览器可以读取本地存储(localStorage),把购物车显示在页面上
+		//提取公共方法
+		window.onload = function(){
+			var util = {
+				//公共方法一:本次存储的读和写
+				getStorage:function(){
+					//通过getStorage可以获取本地存储中list对应的值,并转成json返回
+					return JSON.parse(localStorage.getItem('list')||'[]') 
+				},
+				setStorage:function(json){
+					//传入json格式数据,存入本地存储中的list
+					localStorage.setItem('list',JSON.stringify(json));
+				},
+				//公共方法二:渲染购物车
+				renderCar:function(products,id){
+					var box = document.getElementById(id);
+					if(products.length<1){
+						 box.innerHTML = "";//如果没有商品,清除购物车里面的内容
+					}else{
+						var str = `<table class="table">
+									<thead>
+										<<th>商品编号</th>
+										<th>商品图片</th>
+										<th>商品名称</th>
+										<th>价格</th>
+										<th>数量</th>
+										<th>操作</th>						
+									</thead>
+									<tbody>`;
+						//遍历products,生成行信息	
+						for(var i = 0;i < products.length;i++){
+							str += `<tr>
+										<td>${products[i].id}</td>
+										<td>
+											<img src="${products[i].img}"/>
+										</td>
+										<td>${products[i].name}</td>
+										<td>
+											<span class="btn-info btn btn-xs cut">-</span>
+											<span class="num">${products[i].num}</span>
+											<span class="btn-info btn btn-xs add">+</span>
+										</td>
+										<td>
+											<span class="btn-info btn deleteProduct">删除</span>
+										</td>
+									</tr>`
+						}		
+						str +=`</tbody></table>`;
+					}
+					box.innerHTML = str;
+					//给购物车中的删除按钮添加点击删除事件
+					addDeleteEvent();
+					addNumChangeEvent();
+				}
+	
+			}
+			
+			//0 进入页面立刻根据本地存储信息渲染首屏
+			util.renderCar(util.getStorage(),'car');
+			//1 点击加入购物车按钮,该商品信息存入本地存储
+			addCartEvent();
+			function addCartEvent(){
+				//所有的加入购物车按钮
+				var addCartBtns = document.querySelectorAll('.addCart');
+				for(var i = 0;i < addCartBtns.length;i++){
+					addCartBtns[i].onclick = function(){
+						var tr = this.parentNode.parentNode;//当前按钮所在的行元素
+						//点击的那个商品的信息集合
+						var product = {
+							id:tr.children[0].innerHTML,
+							img:tr.children[1].children[0].src,
+							name:tr.children[2].innerHTML,
+							price:tr.children[3].innerHTML
+						};
+						// console.log(product)
+						addProduct(product)
+					}
+				}
+			
+			}
+			//2 封装一个方法,可以把指定的商品放入到商品集合数组中
+			function addProduct(product){
+				//从本地存储中获取商品列表信息
+				var products = util.getStorage();
+				//遍历商品列表,查看商品列表中有没有商品的id和传入的商品的id相同
+				for(var i = 0;i < products.length;i++){
+					if(products[i].id==product.id){
+						//如果传入的单个商品已经在商品列表中,则数量加一
+						products[i].num = products[i].num + 1;
+						util.setStorage(products);//当商品列表发生变化,更新本地存储信息
+						util.renderCar(products,'car');////当商品列表发生变化,更新购物车信息
+						return;
+					}	
+				}	
+				//如果传入的单个商品不在商品列表中,则数量为一
+				product.num = 1;
+				products.push(product);
+				util.setStorage(products);
+				util.renderCar(products,'car');//当商品列表发生变化,更新购物车信息
+			}
+				
+			//3 点击删除按钮,删除某个商品
+			function addDeleteEvent(){
+				//获取所有删除按钮
+				var deleteBtns = document.querySelectorAll('.deleteProduct');
+				for(var i = 0;i < deleteBtns.length;i++){
+					deleteBtns[i].onclick = function(){
+						var id = this.parentNode.parentNode.children[0].innerHTML;
+						removeProduct(id);
+					}
+				}
+			}		
+			//4 封装一个方法,可以清除指定id的商品	
+			function removeProduct(id){
+				var products = util.getStorage();
+				for(var i = 0;i < products.length;i++){
+					if(products[i].id == id){
+						products.splice(i,1);
+						util.setStorage(products);
+						//当商品列表数组删除一个数据,需要更新本地存储
+						util.renderCar(products,'car');
+						//当商品列表数组删除一个数据,需要重新渲染购物车
+					}
+				}
+			}
+				
+			//5 addNumChangeEvent	
+			
+			//5 addNumChangeEvent
+			function addNumChangeEvent(){
+				var addNumBtns = document.querySelectorAll('.add');//增加商品数量按钮
+				var cutNumBtns = document.querySelectorAll('.cut');//减少商品数量按钮
+				for(var i=0;i<addNumBtns.length;i++){
+					addNumBtns[i].onclick = function(){
+						var id = this.parentNode.parentNode.children[0].innerHTML;
+						NumChange('add',id);
+					}
+					cutNumBtns[i].onclick = function(){
+						var id = this.parentNode.parentNode.children[0].innerHTML;
+						NumChange('cut',id);
+					}
+				}
+			}
+			//6 NumChange用于增减商品数量
+			function NumChange(type,id){
+				var obj = {
+					'add':function(id){
+						//找到商品列表中指定id的商品,num+1
+						var products = util.getStorage();
+						for(var i=0;i<products.length;i++){
+							if(products[i].id==id){
+								products[i].num = products[i].num+1;
+								util.setStorage(products);
+								util.renderCar(products,'car');
+								return;
+							}
+						}
+					},
+					'cut':function(id){
+						//找到商品列表中指定id的商品,num-1
+						var products = util.getStorage();
+						for(var i=0;i<products.length;i++){
+							if(products[i].id==id){
+								products[i].num = products[i].num-1;
+								if(products[i].num<=0){
+									removeProduct(id);//如果商品数量为0,直接清除			
+									return;						
+								}
+			
+									util.setStorage(products);
+									util.renderCar(products,'car');
+									return;
+								
+			
+								
+							}
+						}
+					}
+				}
+				obj[type](id);
+			}
+			
+				
+						
+		}
+		
+		
+		
+		
+		
+		
+	</script>
+</html>
